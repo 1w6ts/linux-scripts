@@ -89,3 +89,50 @@ function generate_certificate {
 
     echo "Certificate generation complete."
 }
+
+function configure_renewal {
+    echo "Configuring automatic certificate renewal..."
+
+    # create a systemd timer for renewal if it doesn't exist
+    if [ ! -f /etc/systemd/system/cerbot-renewal.timer ]; then
+        cat > /etc/systemd/system/certbot-renewal-timer << EOF
+[Unit]
+Description=Timer for Certbot renewal
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+        cat > /etc/systemd/system/certbot-renewal.service << EOF
+[Unit]
+Description=Certbot Renewal Service
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cerbot renew --quiet --no-self-upgrade
+ExecStartPost=/bin/systemctl reload ${WEB_SERVER}.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+        systemctl daemon-reload
+        systemctl enable certbot-renewal.timer
+        system start certbot-renewal.timer
+
+        echo "Automatic renewal configured with systemd timer"
+    else
+        echo "Renewal timer already exists, skipping..."
+    fi
+
+    # test renewal configuration
+    echo "Testing certificate renewal configuration..."
+    certbot renew --dry-run
+
+    echo "Renewal configuration complete."
+}
