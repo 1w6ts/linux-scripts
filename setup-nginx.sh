@@ -182,3 +182,30 @@ echo "Performance optimization complete."
 }
 
 configure_performance
+
+function restart_and_verify {
+    echo "Testing nginx configuration..."
+
+    if nginx -t; then
+        echo "Configuration test successful!"
+    else
+        echo "Configuration test failed!"
+        exit 1
+    fi
+
+    echo "Restarting Nginx..."
+    if systemctl restart nginx; then
+        echo "Nginx restarted successfully!"
+    else
+        echo "Failed to restart nginx."
+        exit 1
+    fi
+
+    systemctl enable nginx
+
+    echo "Nginx setup complete. Service is running and enabled at startup."
+    echo "HTTP port: ${HTTP_PORT:-80}"
+    echo "HTTPS port: ${HTTPS_PORT:-443}"
+}
+
+restart_and_verify
