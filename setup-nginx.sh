@@ -6,18 +6,57 @@
 # exit on error
 set -e
 
+# default valuers
+HTTP_PORT=80
+HTTPS_PORT=443
+HTTPS_ENABLED=0
+
 function show_usage {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo " --help    Show this help message"
+    echo " --help               Show this help message"
+    echo " --http-port PORT     Specify HTTP port (default: 80)"
+    echo " --https-port PORT    Specify HTTPS port (default: 443)"
+    echo " --enable-https       Enable HTTPS redirection"
+    echo " --skip-ssl           Skip SSL configuration"
 }
 
-if [[ "$1" == "--help"]]; then
-show_usage
-exit 0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help)
+      show_usage
+      exit 0
+      ;;
+    --http-port)
+      HTTP_PORT="$2"
+      shift 2
+      ;;
+    --https-port)
+      HTTPS_PORT="$2"
+      shift 2
+      ;;
+    --enable-https)
+      HTTPS_ENABLED=1
+      shift
+      ;;
+    --skip-ssl)
+      SKIP_SSL=1
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      show_usage
+      exit 1
+      ;;
+  esac
+done
+
+if [ "$(id -u) -ne 0"]; then
+    echo "This script must be run as root" >&2
+    exit 1
 fi
 
-echo "starting nginx installation..."
+echo "Starting nginx installation and configuration"
 
 function install_nginx {
     echo "Installing nginx..."
@@ -44,8 +83,6 @@ function install_nginx {
         exit 1
     fi
 }
-
-install_nginx
 
 function configure_ports {
     echo "Configuring nginx ports.."
@@ -87,8 +124,6 @@ EOF
     echo "Port configuration compolete: HTTP on $http_port, HTTPS on $https_port"
 }
 
-configure_ports
-
 # func to configure ssl & security settings
 function configure_security {
     echo "Configuring security settings..."
@@ -115,8 +150,6 @@ EOF
 
     echo "Security configuration complete"
 }
-
-configure_security
 
 function configure_performance {
     echo "Configuring performance optimizations..."
@@ -181,8 +214,6 @@ EOF
 echo "Performance optimization complete."
 }
 
-configure_performance
-
 function restart_and_verify {
     echo "Testing nginx configuration..."
 
@@ -208,4 +239,16 @@ function restart_and_verify {
     echo "HTTPS port: ${HTTPS_PORT:-443}"
 }
 
+echo "=== Nginx Setup Script ==="
+echo "HTTP Port: $HTTP_PORT"
+echo "HTTPS Port: $HTTPS_PORT"
+echo "HTTPS Enabled: $HTTPS_ENABLED"
+echo "=========================="
+
+install_nginx
+configure_ports
+configure_security
+configure_performance
 restart_and_verify
+
+echo "Script completed successfully"
