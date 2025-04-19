@@ -136,3 +136,63 @@ EOF
 
     echo "Renewal configuration complete."
 }
+
+function backup_certificates {
+  echo "Backing up existing certificates..."
+  
+  local backup_dir="/etc/letsencrypt/backup"
+  local date_suffix=$(date +"%Y%m%d%H%M%S")
+  
+  # create backup directory if it doesn't exist
+  mkdir -p "$backup_dir"
+  
+  # Check if there are existing certificates
+  if [ -d /etc/letsencrypt/live ]; then
+    tar -czf "$backup_dir/letsencrypt-$date_suffix.tar.gz" -C / etc/letsencrypt/live etc/letsencrypt/archive etc/letsencrypt/renewal
+    
+    echo "Certificates backed up to $backup_dir/letsencrypt-$date_suffix.tar.gz"
+  else
+    echo "No existing certificates found to backup"
+  fi
+}
+
+function validate_domain {
+  local domain=$1
+  
+  # Simple domain validation regex
+  if [[ ! $domain =~ ^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$ ]]; then
+    echo "Invalid domain name: $domain"
+    return 1
+  fi
+  
+  return 0
+}
+
+function validate_email {
+  local email=$1
+  
+  if [[ ! $email =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    echo "Invalid email address: $email"
+    return 1
+  fi
+  
+  return 0
+}
+
+function validate_webroot {
+  local path=$1
+  
+  # check if path exists
+  if [ ! -d "$path" ]; then
+    echo "Webroot path does not exist: $path"
+    return 1
+  fi
+  
+  # check if path is writable
+  if [ ! -w "$path" ]; then
+    echo "Webroot path is not writable: $path"
+    return 1
+  fi
+  
+  return 0
+}
