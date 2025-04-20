@@ -6,6 +6,14 @@
 
 set -e
 
+DOMAINS=()
+EMAIL=""
+WEBROOT_PATH="/var/www/html"
+WEB_SERVER=""
+AUTH_METHOD="WEB_ROOT"
+STAGING=0
+BACKUP=1
+
 function show_usage {
     echo "Usage: $0 [options]"
     echo "Options:"
@@ -146,7 +154,7 @@ function backup_certificates {
   # create backup directory if it doesn't exist
   mkdir -p "$backup_dir"
   
-  # Check if there are existing certificates
+  # check if there are existing certificates
   if [ -d /etc/letsencrypt/live ]; then
     tar -czf "$backup_dir/letsencrypt-$date_suffix.tar.gz" -C / etc/letsencrypt/live etc/letsencrypt/archive etc/letsencrypt/renewal
     
@@ -159,7 +167,7 @@ function backup_certificates {
 function validate_domain {
   local domain=$1
   
-  # Simple domain validation regex
+  # domain validation regex
   if [[ ! $domain =~ ^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$ ]]; then
     echo "Invalid domain name: $domain"
     return 1
